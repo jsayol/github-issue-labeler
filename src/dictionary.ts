@@ -1,4 +1,4 @@
-import { readdir, readJSON, outputJSON } from 'fs-extra';
+import { readdir, outputJSON } from 'fs-extra';
 import { resolve } from 'path';
 import { Issue } from './types';
 
@@ -30,9 +30,7 @@ export async function buildDictionary(): Promise<Map<string, number>> {
   const files = await readdir(resolve(__dirname, DATA_DIR, 'issues'));
 
   for (const file of files) {
-    const issue: Issue = await readJSON(
-      resolve(__dirname, DATA_DIR, 'issues', file)
-    );
+    const issue: Issue = require(resolve(__dirname, DATA_DIR, 'issues', file));
     const issueWordIntSet = new Set<number>();
     const text = issue.title + ' ' + issue.body;
 
@@ -70,27 +68,13 @@ export function textToWords(text: string): string[] {
   let words = text
     .replace(/```(\w+)([^```]+)```/g, ' ')
     .replace(/([^\w]+)/g, ' ')
+    .toLowerCase()
     .split(/\s+/)
     .filter(word => !/^(|(#+)|(\*+)|(\d+))$/.test(word));
 
   words.splice(MAX_WORDS_PER_ENTRY);
 
   return words;
-}
-
-/**
- * Converts a string of text to the corresponding array
- * of dictionary entry values.
- */
-export function textToIntArray(text: string): number[] {
-  const dict = getDictionary();
-  const wordSet = new Set<number>();
-
-  textToWords(text).forEach(word =>
-    wordSet.add(dict.get(word) || DICT_ENTRY_UNKNOWN)
-  );
-
-  return [...wordSet];
 }
 
 export function dataStats(data: number[][]) {

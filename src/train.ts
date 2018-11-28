@@ -1,17 +1,13 @@
-import tf from '@tensorflow/tfjs';
-import '@tensorflow/tfjs-node-gpu';
-import { readdir, readJSON } from 'fs-extra';
-import { resolve } from 'path';
+import * as tf from '@tensorflow/tfjs';
+import '@tensorflow/tfjs-node';
 import {
-  textToIntArray,
   dataStats,
   MAX_WORDS_PER_ENTRY,
   getDictionary,
   DICT_ENTRY_PADDING
 } from './dictionary';
-import { Issue } from './types';
-
-const DATA_DIR = '../data';
+import { TrainingData } from './data';
+import { ModelFitConfig } from '@tensorflow/tfjs';
 
 /**
  * Pads the data array in place, adding 0's at the end of each
@@ -33,19 +29,71 @@ export function padData(data: number[][]): number[][] {
 }
 
 /**
- * Builds the model that will be trained.
+ * Builds and trains the model with the trainign data.
  */
-export function buildModel() {
+export async function trainModel(data: TrainingData): Promise<tf.Model> {
   const dictionary = getDictionary();
+
+  const hiddenUnits = 16 * data.labels.length;
 
   const model = tf.sequential({
     layers: [
-      tf.layers.embedding({ inputDim: dictionary.size, outputDim: 16 }),
+      tf.layers.embedding({
+        inputDim: dictionary.size + 1,
+        outputDim: hiddenUnits
+      }),
       tf.layers.globalAveragePooling1d({}),
-      tf.layers.dense({ units: 16, activation: 'relu' }),
-      tf.layers.dense({ units: 1, activation: 'sigmoid' })
+      tf.layers.dense({ units: hiddenUnits, activation: 'sigmoid' }),
+      tf.layers.dense({ units: data.labels.length, activation: 'softmax' })
     ]
   });
 
-  model.summary();
+  // Tensors
+  const xTensor = tf.tensor2d(padData(data.training.inputs), void 0, 'int32');
+  const yTensor = tf.tensor2d(data.training.outputs, void 0, 'float32');
+
+  // Create an optimizer
+  const learningRate = 0.02;
+  const optimizer = tf.train.sgd(learningRate);
+
+  // Compile the model
+  model.compile({
+    optimizer,
+    loss: 'meanSquaredError'
+  });
+
+  // Train the model
+  const options: ModelFitConfig = {
+    epochs: 10,
+    shuffle: true,
+    validationSplit: 0.1
+  };
+  const result = await model.fit(xTensor, yTensor, options);
+  console.log(result);
+
+  // Dispose of any data we don't need anymore, to free memory up
+  xTensor.dispose();
+  yTensor.dispose();
+
+  return model;
+}
+
+export function testModel(model: tf.Model, data: TrainingData) {
+  const xTensor = tf.tensor2d(padData(data.test.inputs));
+  const result = model.predict(xTensor) as tf.Tensor;
+  xTensor.dispose();
+
+  const r = result.dataSync();
+  let output: number[][] = [];
+
+  const [xSize, ySize] = result.shape;
+
+  for (let i = 0; i < xSize; i++) {
+    output[i] = [];
+    for (let j = 0; j < ySize; j++) {
+      output[i][j] = r[i * ySize + j];
+    }
+  }
+
+  console.log(output);
 }

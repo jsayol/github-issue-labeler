@@ -5,16 +5,13 @@ import { resolve } from 'path';
 
 const ISSUES_PER_PAGE = 100;
 
-export async function download(
-  repoOwner: string,
-  repoName: string
-): Promise<void> {
+export async function downloadIssues(repo: string): Promise<void> {
   let issues: IssueOrPullRequest[];
   let page = 1;
 
   do {
     console.log(`Getting page ${page}`);
-    issues = await getIssues(repoOwner, repoName, page);
+    issues = await getIssues(repo, page);
     console.log(`Page ${page} had ${issues.length} issues. Saving...`);
     await saveIssues(issues).then(() => console.log(`Saved page ${page}`));
     page += 1;
@@ -22,12 +19,11 @@ export async function download(
 }
 
 function getIssues(
-  repoOwner: string,
-  repoName: string,
+  repo: string,
   page: number = 1
 ): Promise<IssueOrPullRequest[]> {
   const options = {
-    uri: `https://api.github.com/repos/${repoOwner}/${repoName}/issues`,
+    uri: `https://api.github.com/repos/${repo}/issues`,
     qs: {
       state: 'all',
       per_page: ISSUES_PER_PAGE,
