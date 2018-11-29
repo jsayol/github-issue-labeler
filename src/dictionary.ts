@@ -31,7 +31,6 @@ export async function buildDictionary(): Promise<Map<string, number>> {
 
   for (const file of files) {
     const issue: Issue = require(resolve(__dirname, DATA_DIR, 'issues', file));
-    const issueWordIntSet = new Set<number>();
     const text = issue.title + ' ' + issue.body;
 
     for (const word of textToWords(text)) {

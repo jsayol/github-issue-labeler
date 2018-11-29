@@ -48,11 +48,13 @@ import { trainModel, testModel } from './train';
 //   'feature-request'
 // ];
 
-// getTrainingData(labels).then(data => {
-//   return saveTrainingData(data);
+// getTrainingData(labels).then(async data => {
+//   await saveTrainingData(data);
+//   const model = await trainModel(data);
+//   testModel(model, data);
 // });
 
-const data = loadTrainingData();
-trainModel(data).then(model => {
-  return testModel(model, data);
-});
+// const data = loadTrainingData();
+// trainModel(data).then(model => {
+//   return testModel(model, data);
+// });

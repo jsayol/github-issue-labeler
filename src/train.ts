@@ -41,7 +41,7 @@ export async function trainModel(data: TrainingData): Promise<tf.Model> {
   const model = tf.sequential({
     layers: [
       tf.layers.embedding({
-        inputDim: dictionary.size + 1,
+        inputDim: dictionary.size + 5, // There's 5 reserved extra positions in the dictionary
         outputDim: hiddenUnits
       }),
       tf.layers.globalAveragePooling1d({}),
@@ -66,7 +66,7 @@ export async function trainModel(data: TrainingData): Promise<tf.Model> {
 
   // Train the model
   const options: ModelFitConfig = {
-    epochs: 10,
+    epochs: 50,
     shuffle: true,
     validationSplit: 0.1
   };
